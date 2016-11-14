@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.area {
+  fill: steelblue;
+}
+
+</style>
+<body>
+  <div id="heatmap"> </div>
+</body>
+
+<script src="https://d3js.org/d3.v4.js"></script>
+<script>
+
+d3.csv("vgsales.csv")
+  .row(function(d) {
+    return {
+      rank: d.Rank,
+      name: d.Name,
+      platform: d.Platform,
+      year: d.Year,
+      genre: d.Genre,
+      publisher: d.Publisher,
+      na_sales: d.NA_Sales,
+      eu_sales: d.EU_Sales,
+      jp_sales: d.JP_Sales,
+      other_sales: d.Other_Sales,
+      global_sales: d.Global_Sales
+    };
+  })
+  .get(renderGraph);
+
+function renderGraph(data) {
+
+  var salesByPublisherAndYear = d3.nest()
+                                  .key(function(d) { return d.publisher; })
+                                  .key(function(d) { return d.year; })
+                                  .rollup(function(v) { return d3.sum(v, function(d) { return d.global_sales; }); })
+                                  .map(data);
+
+  var chartHeight = 960,
+      chartWidth = 560;
+
+  var margin = {top: 20, right: 80, bottom: 30, left: 50},
+      width = chartWidth - margin.left - margin.right,
+      height = chartHeight - margin.top - margin.bottom;
+
+  var colorScale = d3.scaleLinear()
+       .domain(d3.extext(data, function(d){
+         return d.global_sales;
+       }))
+       .range([#f7fcfd, #88419d]);
+
+  var xScale = d3.scaleOrdinal()
+                 .domain(data.map(function(d) {
+                   return d.year;
+                 }))
+                 .range([margin.left, width]);
+
+  var yScale = d3.scaleOrdinal()
+                 .domain(data.map(function(d) {
+                   return d.publisher;
+                 }))
+                 .range([margin.left, width]);
+
+  var svg = d3.select("#heatmap").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  var heatMap = svg.selectAll(".heatmap")
+      .data(data)
+    .enter().append("svg:rect")
+      .attr("x", function(d) { return xScale(d.year); })
+      .attr("y", function(d) { return yScale(d.publisher); })
+      .attr("width", function(d) { return 5; })
+      .attr("height", function(d) { return h; })
+      .style("fill", function(d) { return colorScale(); });
+
+}
+
+
+
+</script>
