@@ -4,13 +4,83 @@
 
 </style>
 <body>
+  <div id="elementViewerPanel" class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">Element Viewer</h3>
+    </div>
+    <div class="panel-body">
+    </div>
+  </div>
+
+  <div id="filterViewerPanel" class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">Filter</h3>
+    </div>
+    <div class="panel-body">
+      <div class="form-group">
+        <label>Sales Type:</label>
+        <select id="salesTypeList" class="form-control">
+          <option value="na_sales">na_sales</option>
+          <option value="eu_sales">eu_sales</option>
+          <option value="jp_sales">jp_sales</option>
+          <option value="other_sales">other_sales</option>
+          <option value="global_sales">global_sales</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>X Axis:</label>
+        <select id="xAxisSelector" class="form-control">
+          <option value="year">Year</option>
+          <option value="genre">Genre</option>
+          <option value="platform">Platform</option>
+          <option value="publisher">Publisher</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Y Axis:</label>
+        <select id="yAxisSelector" class="form-control">
+          <option value="year">Year</option>
+          <option value="genre">Genre</option>
+          <option value="platform">Platform</option>
+          <option value="publisher">Publisher</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
   <div id="heatmap"> </div>
 </body>
 
 <script src="https://d3js.org/d3.v4.js"></script>
+<script src="bootstrap/js/boostrap.js"></script>
+<link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
 <script>
+var url = "vgsales.csv";
+var salesType = "global_sales";
+var xAxisType = "year";
+var yAxisType = "publisher";
+retrieveDataAndRender(url);
 
-d3.csv("vgsales.csv")
+document.getElementById("salesTypeList").onchange = function() {
+  document.getElementById("heatmap").innerHTML = "";
+  salesType = this.value;
+  retrieveDataAndRender(url);
+};
+
+document.getElementById("xAxisSelector").onchange = function() {
+  document.getElementById("heatmap").innerHTML = "";
+  xAxisType = this.value;
+  retrieveDataAndRender(url);
+};
+
+document.getElementById("yAxisSelector").onchange = function() {
+  document.getElementById("heatmap").innerHTML = "";
+  yAxisType = this.value;
+  retrieveDataAndRender(url);
+};
+
+function retrieveDataAndRender(url) {
+  d3.csv(url)
   .row(function(d) {
     return {
       rank: d.Rank,
@@ -27,27 +97,29 @@ d3.csv("vgsales.csv")
     };
   })
   .get(renderGraph);
+}
+
 
 function renderGraph(data) {
-
   var salesByPublisherAndYear = d3.nest()
-                                  .key(function(d) { return d.publisher; }).sortKeys(d3.asecending)
-                                  .key(function(d) { return d.year; }).sortKeys(d3.ascending)
-                                  .rollup(function(v) { return d3.sum(v, function(d) { return d.global_sales; }); })
+                                  .key(function(d) { return d[yAxisType]; }).sortKeys(d3.asecending)
+                                  .key(function(d) { return d[xAxisType]; }).sortKeys(d3.ascending)
+                                  .rollup(function(v) { return d3.sum(v, function(d) { return d[salesType]; }); })
                                   .entries(data);
 
   var flattenedData = [];
-  salesByPublisherAndYear.forEach(function(publisher){
-    publisher.values.forEach(function(year){
+  salesByPublisherAndYear.forEach(function(y){
+    y.values.forEach(function(x){
       flattenedData.push({
-        publisher: publisher.key,
-        year: year.key,
-        global_sales: year.value
+        y: y.key,
+        x: x.key,
+        sales: x.value
       })
     })
   });
+  console.log(flattenedData)
   
-  flattenedData = flattenedData.slice(0,200);
+  flattenedData = flattenedData.slice(0,300);
   var chartHeight = 960,
       chartWidth = 960;
 
@@ -57,18 +129,18 @@ function renderGraph(data) {
 
   var colorScale = d3.scaleLinear()
        .domain(d3.extent(flattenedData, function(d){
-         return d.global_sales;
+         return d.sales;
        }))
        .range(["#78c679", "#004529"]);
 
   var xScale = d3.scaleBand()
                  .domain(flattenedData.map(function(d) {
-                   return d.year;
+                   return d.x;
                  }));
 
   var yScale = d3.scaleBand()
                  .domain(flattenedData.map(function(d) {
-                   return d.publisher;
+                   return d.y;
                  }));
 
   var gridSize = d3.min([width/xScale.domain().length,height/yScale.domain().length]);
@@ -99,15 +171,21 @@ function renderGraph(data) {
   var heatMap = svg.selectAll(".heatmap")
     .data(flattenedData)
   .enter().append("rect")
-    .attr("x", function(d) { return xScale(d.year); })
-    .attr("y", function(d) { return yScale(d.publisher); })
+    .attr("x", function(d) { return xScale(d.x); })
+    .attr("y", function(d) { return yScale(d.y); })
     .attr("rx", 1)
     .attr("ry", 1)
     .style("stroke", "black")
     .style("stroke-width", 0.3)
     .attr("width", gridSize)
     .attr("height", gridSize)
-    .style("fill", function(d) { return colorScale(d.global_sales); });
+    .style("fill", function(d) { return colorScale(d.sales); })
+    .on("click", function(d) {
+      d3.select("#elementViewerPanel > .panel-body")
+        .html(yAxisType + ": " + d.y + "<br/>" 
+             + xAxisType + ": " + d.x + "<br/>"
+             + salesType + ": " + d.sales);
+    });
 
 
 }
