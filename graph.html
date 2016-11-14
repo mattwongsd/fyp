@@ -2,21 +2,6 @@
 <meta charset="utf-8">
 <style>
 
-body {
-  font: 10px sans-serif;
-}
-
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-
-.area {
-  fill: steelblue;
-}
-
 </style>
 <body>
   <div id="heatmap"> </div>
@@ -46,38 +31,50 @@ d3.csv("vgsales.csv")
 function renderGraph(data) {
 
   var salesByPublisherAndYear = d3.nest()
-                                  .key(function(d) { return d.publisher; })
-                                  .key(function(d) { return d.year; })
+                                  .key(function(d) { return d.publisher; }).sortKeys(d3.asecending)
+                                  .key(function(d) { return d.year; }).sortKeys(d3.ascending)
                                   .rollup(function(v) { return d3.sum(v, function(d) { return d.global_sales; }); })
-                                  .map(data);
+                                  .entries(data);
 
+  var flattenedData = [];
+  salesByPublisherAndYear.forEach(function(publisher){
+    publisher.values.forEach(function(year){
+      flattenedData.push({
+        publisher: publisher.key,
+        year: year.key,
+        global_sales: year.value
+      })
+    })
+  });
+  
+  flattenedData = flattenedData.slice(0,200);
   var chartHeight = 960,
-      chartWidth = 560;
+      chartWidth = 960;
 
-  var margin = {top: 20, right: 80, bottom: 30, left: 50},
+  var margin = {top: 20, right: 80, bottom: 20, left: 80},
       width = chartWidth - margin.left - margin.right,
       height = chartHeight - margin.top - margin.bottom;
 
   var colorScale = d3.scaleLinear()
-       .domain(d3.extent(data, function(d){
+       .domain(d3.extent(flattenedData, function(d){
          return d.global_sales;
        }))
        .range(["#78c679", "#004529"]);
 
   var xScale = d3.scaleBand()
-                 .domain(data.map(function(d) {
+                 .domain(flattenedData.map(function(d) {
                    return d.year;
-                 }))
-                 .range([margin.left, width]);
+                 }));
 
   var yScale = d3.scaleBand()
-                 .domain(data.map(function(d) {
+                 .domain(flattenedData.map(function(d) {
                    return d.publisher;
-                 }))
-                 .range([margin.top, height]);
+                 }));
 
-  var xAxis = d3.axisBottom(xScale);
-  var yAxis = d3.axisLeft(yScale);
+  var gridSize = d3.min([width/xScale.domain().length,height/yScale.domain().length]);
+
+  xScale.range([0,gridSize*xScale.domain().length]);
+  yScale.range([0,gridSize*yScale.domain().length]);
 
   var svg = d3.select("#heatmap").append("svg")
       .attr("width", width + margin.left + margin.right)
@@ -85,21 +82,33 @@ function renderGraph(data) {
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-  svg.append("g")
-    .attr("transform", "translate(0," + height + ")")
-    .call(xAxis);
+  var xAxis = d3.axisBottom(xScale)
+                .tickValues(xScale.domain().filter(function(d, i) { return !(i % 2); }));
+  var yAxis = d3.axisLeft(yScale);
 
   svg.append("g")
-    .call(yAxis);
+     .classed("xAxis", true)
+     .attr("transform", "translate(0," + gridSize*yScale.domain().length + ")")
+     .call(xAxis);
+
+  svg.append("g")
+     .classed("yAxis", true)
+     //.attr("transform", "translate(" + margin.left + ",0)")
+     .call(yAxis);
 
   var heatMap = svg.selectAll(".heatmap")
-      .data(data)
-    .enter().append("svg:rect")
-      .attr("x", function(d) { return xScale(d.year); })
-      .attr("y", function(d) { return yScale(d.publisher); })
-      .attr("width", xScale.bandwidth())
-      .attr("height", yScale.bandwidth())
-      .style("fill", function(d) { return colorScale(d.global_sales); });
+    .data(flattenedData)
+  .enter().append("rect")
+    .attr("x", function(d) { return xScale(d.year); })
+    .attr("y", function(d) { return yScale(d.publisher); })
+    .attr("rx", 1)
+    .attr("ry", 1)
+    .style("stroke", "black")
+    .style("stroke-width", 0.3)
+    .attr("width", gridSize)
+    .attr("height", gridSize)
+    .style("fill", function(d) { return colorScale(d.global_sales); });
+
 
 }
 
