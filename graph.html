@@ -59,22 +59,25 @@ function renderGraph(data) {
       height = chartHeight - margin.top - margin.bottom;
 
   var colorScale = d3.scaleLinear()
-       .domain(d3.extext(data, function(d){
+       .domain(d3.extent(data, function(d){
          return d.global_sales;
        }))
-       .range([#f7fcfd, #88419d]);
+       .range(["#78c679", "#004529"]);
 
-  var xScale = d3.scaleOrdinal()
+  var xScale = d3.scaleBand()
                  .domain(data.map(function(d) {
                    return d.year;
                  }))
                  .range([margin.left, width]);
 
-  var yScale = d3.scaleOrdinal()
+  var yScale = d3.scaleBand()
                  .domain(data.map(function(d) {
                    return d.publisher;
                  }))
-                 .range([margin.left, width]);
+                 .range([margin.top, height]);
+
+  var xAxis = d3.axisBottom(xScale);
+  var yAxis = d3.axisLeft(yScale);
 
   var svg = d3.select("#heatmap").append("svg")
       .attr("width", width + margin.left + margin.right)
@@ -82,14 +85,21 @@ function renderGraph(data) {
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+  svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
+
+  svg.append("g")
+    .call(yAxis);
+
   var heatMap = svg.selectAll(".heatmap")
       .data(data)
     .enter().append("svg:rect")
       .attr("x", function(d) { return xScale(d.year); })
       .attr("y", function(d) { return yScale(d.publisher); })
-      .attr("width", function(d) { return 5; })
-      .attr("height", function(d) { return h; })
-      .style("fill", function(d) { return colorScale(); });
+      .attr("width", xScale.bandwidth())
+      .attr("height", yScale.bandwidth())
+      .style("fill", function(d) { return colorScale(d.global_sales); });
 
 }
 
