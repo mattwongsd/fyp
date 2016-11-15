@@ -127,11 +127,14 @@ function renderGraph(data) {
       width = chartWidth - margin.left - margin.right,
       height = chartHeight - margin.top - margin.bottom;
 
+  var color = d3.scaleSequential(d3.interpolatePiYG);
+  console.log();
+
   var colorScale = d3.scaleLinear()
        .domain(d3.extent(flattenedData, function(d){
          return d.sales;
        }))
-       .range(["#78c679", "#004529"]);
+       .range(d3.schemePuBu);
 
   var xScale = d3.scaleBand()
                  .domain(flattenedData.map(function(d) {
