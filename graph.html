@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<style>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<link rel="stylesheet" href="bootstrap/css/bootstrap.css">
+		<link rel="stylesheet" href="bootstrap/css/bootstrap-theme.css">
+	</head>
 
-</style>
 <body>
   <div id="elementViewerPanel" class="panel panel-default">
     <div class="panel-heading">
@@ -39,21 +42,38 @@
       <div class="form-group">
         <label>Y Axis:</label>
         <select id="yAxisSelector" class="form-control">
-          <option value="year">Year</option>
+          <option value="publisher">Publisher</option>
+		  <option value="year">Year</option>
           <option value="genre">Genre</option>
           <option value="platform">Platform</option>
-          <option value="publisher">Publisher</option>
         </select>
       </div>
-    </div>
+	  <div class="col-lg-6">
+    <div class="input-group">
+      <div class="input-group-btn">
+        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Filter <span class="caret"></span></button>
+        <ul class="dropdown-menu">
+          <li><a href="#">></a></li>
+          <li><a href="#">>=</a></li>
+          <li><a href="#"><=</a></li>
+		  <li><a href="#">=</a></li>
+        </ul>
+      </div><!-- /btn-group -->
+      <input type="text" class="form-control" aria-label="...">
+    </div><!-- /input-group -->
+  </div><!-- /.col-lg-6 -->
+  <div class="col-lg-6">
   </div>
+	</div>
 
   <div id="heatmap"> </div>
 </body>
 
 <script src="https://d3js.org/d3.v4.js"></script>
-<script src="bootstrap/js/boostrap.js"></script>
-<link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+<script src="d3-scale-chromatic/d3-scale-chromatic.js"></script>
+<script src="jquery-2.2.4.js"></script>
+<script src="bootstrap/js/bootstrap.js"></script>
+
 <script>
 var url = "vgsales.csv";
 var salesType = "global_sales";
@@ -117,7 +137,6 @@ function renderGraph(data) {
       })
     })
   });
-  console.log(flattenedData)
   
   flattenedData = flattenedData.slice(0,300);
   var chartHeight = 960,
@@ -127,15 +146,12 @@ function renderGraph(data) {
       width = chartWidth - margin.left - margin.right,
       height = chartHeight - margin.top - margin.bottom;
 
-  var color = d3.scaleSequential(d3.interpolatePiYG);
-  console.log();
-
-  var colorScale = d3.scaleLinear()
-       .domain(d3.extent(flattenedData, function(d){
-         return d.sales;
-       }))
-       .range(d3.schemePuBu);
-
+  var colourScale = d3.scaleLinear()
+		.domain(d3.extent(flattenedData, function(d){
+			return d.sales;
+    }))
+		.range([0,1]);
+		
   var xScale = d3.scaleBand()
                  .domain(flattenedData.map(function(d) {
                    return d.x;
@@ -182,7 +198,7 @@ function renderGraph(data) {
     .style("stroke-width", 0.3)
     .attr("width", gridSize)
     .attr("height", gridSize)
-    .style("fill", function(d) { return colorScale(d.sales); })
+    .style("fill", function(d) { return d3.interpolateBlues(colourScale(d.sales)); })
     .on("click", function(d) {
       d3.select("#elementViewerPanel > .panel-body")
         .html(yAxisType + ": " + d.y + "<br/>" 
@@ -196,3 +212,4 @@ function renderGraph(data) {
 
 
 </script>
+</html>
